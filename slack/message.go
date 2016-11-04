@@ -9,8 +9,8 @@ const (
 type Message struct {
 	Id          string `json:"id" estype:"string" ana:"n"`
 	Seqid       int64  `json:"seqid" estype:"long"`
-	Text        string `json:"text" estype:"string"`
-	Filecontent string `json:"filecontent" estype:"string"`
+	Text        string `json:"text" estype:"string" ana:"s"`
+	Filecontent string `json:"filecontent" estype:"string" ana:"s"`
 	Rawtext     string `json:"rawtext" estype:"string"`
 
 	Userid    string `json:"userid" estype:"string" ana:"n"`

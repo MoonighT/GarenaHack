@@ -3,7 +3,9 @@ package slack
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/MoonighT/GarenaHack/common"
 	"github.com/MoonighT/elastic"
@@ -24,9 +26,40 @@ func NewESClient(addrs []string) *elastic.Client {
 	return client
 }
 
+// Add unit test for this function
+func getAsciiMappingArray() (charsMappingArray []string) {
+	//Ascii characters other than [0-9], [a-zA-Z] will be converted into a white space
+	for i := 33; i < 128; i++ {
+		if i < 32 || (i > 32 && i < 48) ||
+			(i > 57 && i < 65) || (i > 90 && i < 97) || (i > 122) {
+			var x string
+			if i == 39 {
+				//continue
+				x = "'=>\\u0020"
+			} else {
+				r := rune(i)
+				s := fmt.Sprintf("%q", r)
+				s = strings.Replace(s, "'", "", -1)
+				x = fmt.Sprintf("%s=>\\u0020", s)
+			}
+			charsMappingArray = append(charsMappingArray, x)
+		}
+	}
+	return
+}
+
 func buildIndexConfig(numOfRep, numOfShards int, object interface{}) string {
 	// settings
-	index := map[string]interface{}{"number_of_shards": numOfShards, "number_of_replicas": numOfRep}
+	charsMappingName := "char_mapping"
+	charsMappingRule := map[string]interface{}{"type": "mapping",
+		"mappings": getAsciiMappingArray()}
+	charsMapping := map[string]interface{}{charsMappingName: charsMappingRule}
+	slackAnalyzer := map[string]interface{}{"tokenizer": "whitespace",
+		"char_filter": []string{charsMappingName}} //
+	analyzer := map[string]interface{}{"slack_analyzer": slackAnalyzer}
+	analysis := map[string]interface{}{"char_filter": charsMapping, "analyzer": analyzer}
+	index := map[string]interface{}{"number_of_shards": numOfShards, "number_of_replicas": numOfRep,
+		"analysis": analysis}
 	settings := map[string]interface{}{"index.cache.query.enable": true, "index": index}
 	tp := reflect.TypeOf(object)
 	properties := map[string]interface{}{}
@@ -38,6 +71,8 @@ func buildIndexConfig(numOfRep, numOfShards int, object interface{}) string {
 		n := map[string]interface{}{"type": estype}
 		if ana == "n" {
 			n["index"] = "not_analyzed"
+		} else if ana == "s" {
+			n["analyzer"] = "slack_analyzer"
 		}
 		properties[name] = n
 	}
