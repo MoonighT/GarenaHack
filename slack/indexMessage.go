@@ -7,6 +7,7 @@ import (
 
 	"github.com/MoonighT/GarenaHack/common"
 	"github.com/MoonighT/elastic"
+	porterstemmer "github.com/magiczhao/go-porterstemmer"
 )
 
 var (
@@ -53,4 +54,11 @@ func IndexMessage(message *Message) error {
 	}
 	common.LogDetailf("index message %v, resp=%v", message, resp)
 	return nil
+}
+
+// EnglishStemming is a function to stemming the word
+func EnglishStemming(value string) string {
+	origin := []rune(value)
+	stem := porterstemmer.Stem(origin)
+	return string(stem)
 }
